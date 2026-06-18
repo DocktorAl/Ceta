@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid & SVG Live Editor</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: false,
+            theme: 'default',
+            securityLevel: 'loose'
+        });
+        window.mermaid = mermaid;
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: #fff;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #f8f8f8;
+            border-color: #ccc;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 61px);
+        }
+
+        .editor-panel {
+            flex: 0 0 40%;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            min-width: 200px;
+        }
+
+        .css-panel {
+            border-top: 1px solid #e0e0e0;
+            background: #f8f8f8;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .css-panel.expanded {
+            max-height: 300px;
+        }
+
+        .svg-panel {
+            border-top: 1px solid #e0e0e0;
+            background: #f8f8f8;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .svg-panel.expanded {
+            max-height: 300px;
+        }
+
+        .config-panel {
+            border-top: 1px solid #e0e0e0;
+            background: #f8f8f8;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .config-panel.expanded {
+            max-height: 300px;
+        }
+
+        .css-toggle {
+            padding: 8px 20px;
+            background: #f0f0f0;
+            border-top: 1px solid #e0e0e0;
+            cursor: pointer;
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+        }
+
+        .css-toggle:hover {
+            background: #e8e8e8;
+        }
+
+        .css-toggle::before {
+            content: '▶';
+            font-size: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .css-toggle.expanded::before {
+            transform: rotate(90deg);
+        }
+
+        .svg-toggle {
+            padding: 8px 20px;
+            background: #f0f0f0;
+            border-top: 1px solid #e0e0e0;
+            cursor: pointer;
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+        }
+
+        .svg-toggle:hover {
+            background: #e8e8e8;
+        }
+
+        .svg-toggle::before {
+            content: '▶';
+            font-size: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .svg-toggle.expanded::before {
+            transform: rotate(90deg);
+        }
+
+        .config-toggle {
+            padding: 8px 20px;
+            background: #f0f0f0;
+            border-top: 1px solid #e0e0e0;
+            cursor: pointer;
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+        }
+
+        .config-toggle:hover {
+            background: #e8e8e8;
+        }
+
+        .config-toggle::before {
+            content: '▶';
+            font-size: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .config-toggle.expanded::before {
+            transform: rotate(90deg);
+        }
+
+        #cssEditor {
+            width: 100%;
+            height: 250px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            border: none;
+            resize: none;
+            outline: none;
+            background: #fff;
+            line-height: 1.6;
+        }
+
+        #svgEditor {
+            width: 100%;
+            height: 250px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            border: none;
+            resize: none;
+            outline: none;
+            background: #fff;
+            line-height: 1.6;
+        }
+
+        #configEditor {
+            width: 100%;
+            height: 250px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            border: none;
+            resize: none;
+            outline: none;
+            background: #fff;
+            line-height: 1.6;
+        }
+
+        .preview-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #fafafa;
+            min-width: 200px;
+        }
+
+        .resizer {
+            width: 5px;
+            background: #e0e0e0;
+            cursor: col-resize;
+            flex-shrink: 0;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .resizer:hover {
+            background: #2196F3;
+        }
+
+        .resizer.resizing {
+            background: #2196F3;
+        }
+
+        .panel-header {
+            padding: 12px 20px;
+            background: #f8f8f8;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 600;
+            font-size: 14px;
+            color: #666;
+        }
+
+        #editor {
+            flex: 1;
+            padding: 20px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            border: none;
+            resize: none;
+            outline: none;
+            line-height: 1.6;
+            background: #fff;
+        }
+
+        #preview {
+            flex: 1;
+            padding: 40px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: default;
+            position: relative;
+        }
+
+        #diagram {
+            max-width: 100%;
+            width: 100%;
+        }
+
+        #diagram svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .error {
+            color: #d32f2f;
+            padding: 20px;
+            background: #ffebee;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+
+        .placeholder {
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Mermaid & SVG Live Editor</h1>
+        <div class="controls">
+            <button onclick="saveAllSettings()">Save All</button>
+            <button onclick="loadAllSettings()">Load All</button>
+            <button onclick="resetZoom()">Reset View</button>
+            <button onclick="copySVGSource()">Copy SVG Source</button>
+            <button onclick="downloadSVG()">Download SVG</button>
+            <button onclick="downloadPNG()">Download PNG</button>
+            <button onclick="clearEditor()">Clear</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="editor-panel">
+            <div class="panel-header">Mermaid Code <span style="font-weight:400;font-size:12px;color:#999">— use \n in names for line breaks</span></div>
+            <textarea id="editor" placeholder="Enter your Mermaid diagram code or paste SVG here...">gantt
+    title IT Roadmap Example
+    dateFormat YYYY-MM-DD
+    excludes weekends
+    weekend friday
+    axisFormat %b %d
+    
+    section Phase 1
+    Project Setup    :a1, 2026-02-01, 30d
+    Requirements     :a2, after a1, 20d
+    
+    section Phase 2
+    Development      :b1, 2026-04-01, 45d
+    Testing          :b2, after b1, 15d
+    
+    Milestone 1      :milestone, m1, 2026-03-15, 0d
+    Milestone 2      :milestone, m2, 2026-06-01, 0d
+    
+    Go-Live Date     :vert, v1, 2026-06-15, 0d</textarea>
+            <div class="config-toggle" id="configToggle">Mermaid Config (Optional)</div>
+            <div class="config-panel" id="configPanel">
+                <textarea id="configEditor" placeholder="/* Enter Mermaid configuration as JSON */
+/* Example for Gantt charts: */">{
+  "gantt": {
+    "titleTopMargin": 25,
+    "barHeight": 20,
+    "barGap": 4,
+    "topPadding": 75,
+    "rightPadding": 75,
+    "leftPadding": 75,
+    "gridLineStartPadding": 10,
+    "fontSize": 12,
+    "sectionFontSize": 24,
+    "numberSectionStyles": 1,
+    "axisFormat": "%d/%m",
+    "tickInterval": "1week",
+    "topAxis": true,
+    "displayMode": "",
+    "weekday": "sunday",
+    "taskPadding": 2
+  }
+}</textarea>
+            </div>
+            <div class="svg-toggle" id="svgToggle">SVG Override (Optional)</div>
+            <div class="svg-panel" id="svgPanel">
+                <textarea id="svgEditor" placeholder="/* Paste SVG wrapper here to override viewport/size */
+/* Example: <svg viewBox=&quot;0 0 2000 1000&quot; width=&quot;100%&quot;>...</svg> */
+/* When populated, this wraps or replaces the Mermaid output */"></textarea>
+            </div>
+            <div class="css-toggle" id="cssToggle">Custom CSS (Optional)</div>
+            <div class="css-panel" id="cssPanel">
+                <textarea id="cssEditor" placeholder="/* Add custom CSS here to style your diagram */
+/* Example: */
+/* .task { fill: #4CAF50 !important; } */"></textarea>
+            </div>
+        </div>
+
+        <div class="resizer" id="resizer"></div>
+
+        <div class="preview-panel">
+            <div class="panel-header">Preview</div>
+            <div id="preview">
+                <div class="placeholder">Preview will appear here...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const cssEditor = document.getElementById('cssEditor');
+        const svgEditor = document.getElementById('svgEditor');
+        const configEditor = document.getElementById('configEditor');
+        const cssToggle = document.getElementById('cssToggle');
+        const cssPanel = document.getElementById('cssPanel');
+        const svgToggle = document.getElementById('svgToggle');
+        const svgPanel = document.getElementById('svgPanel');
+        const configToggle = document.getElementById('configToggle');
+        const configPanel = document.getElementById('configPanel');
+        const preview = document.getElementById('preview');
+        const resizer = document.getElementById('resizer');
+        const editorPanel = document.querySelector('.editor-panel');
+        const container = document.querySelector('.container');
+        let debounceTimer;
+
+        // CSS Panel Toggle
+        cssToggle.addEventListener('click', function() {
+            cssToggle.classList.toggle('expanded');
+            cssPanel.classList.toggle('expanded');
+        });
+
+        // SVG Panel Toggle
+        svgToggle.addEventListener('click', function() {
+            svgToggle.classList.toggle('expanded');
+            svgPanel.classList.toggle('expanded');
+        });
+
+        // Config Panel Toggle
+        configToggle.addEventListener('click', function() {
+            configToggle.classList.toggle('expanded');
+            configPanel.classList.toggle('expanded');
+        });
+
+        // Apply Mermaid configuration
+        function applyMermaidConfig() {
+            const configText = configEditor.value.trim();
+            
+            if (!configText) {
+                // Reset to defaults
+                mermaid.initialize({ 
+                    startOnLoad: false,
+                    theme: 'default',
+                    securityLevel: 'loose'
+                });
+                return;
+            }
+
+            try {
+                const config = JSON.parse(configText);
+                mermaid.initialize({ 
+                    startOnLoad: false,
+                    theme: 'default',
+                    securityLevel: 'loose',
+                    ...config
+                });
+            } catch (error) {
+                console.error('Invalid Mermaid config JSON:', error);
+            }
+        }
+
+        // Apply custom CSS
+        function applyCustomCSS() {
+            const customCSS = cssEditor.value.trim();
+            
+            // Remove any existing custom style
+            const existingStyle = document.getElementById('custom-diagram-style');
+            if (existingStyle) {
+                existingStyle.remove();
+            }
+
+            if (customCSS) {
+                const styleElement = document.createElement('style');
+                styleElement.id = 'custom-diagram-style';
+                
+                // Scope CSS to the diagram - proper parsing
+                const scopedCSS = customCSS.replace(/([^{}]+)\{/g, (match, selector) => {
+                    // Don't modify if already scoped or is a comment
+                    if (selector.includes('#diagram') || selector.trim().startsWith('/*')) {
+                        return match;
+                    }
+                    // Add #diagram scope to selector
+                    const trimmedSelector = selector.trim();
+                    return `#diagram ${trimmedSelector} {`;
+                });
+                
+                styleElement.textContent = scopedCSS;
+                document.head.appendChild(styleElement);
+            }
+        }
+
+        // Apply SVG override
+        function applySVGOverride(mermaidSvg) {
+            const svgOverride = svgEditor.value.trim();
+            
+            if (!svgOverride) {
+                // No override, return Mermaid SVG as-is
+                return mermaidSvg;
+            }
+
+            // Parse the SVG override to extract wrapper attributes
+            const svgMatch = svgOverride.match(/<svg([^>]*)>/i);
+            if (!svgMatch) {
+                // Invalid SVG, return Mermaid SVG as-is
+                return mermaidSvg;
+            }
+
+            // Extract attributes from override
+            const overrideAttrs = svgMatch[1];
+            
+            // Parse Mermaid SVG
+            const parser = new DOMParser();
+            const mermaidDoc = parser.parseFromString(mermaidSvg, 'image/svg+xml');
+            const mermaidSvgEl = mermaidDoc.querySelector('svg');
+            
+            if (!mermaidSvgEl) {
+                return mermaidSvg;
+            }
+
+            // Apply override attributes to Mermaid SVG
+            const attrMatches = overrideAttrs.matchAll(/(\w+(?:-\w+)*)=["']([^"']*)["']/g);
+            for (const match of attrMatches) {
+                const [, attrName, attrValue] = match;
+                mermaidSvgEl.setAttribute(attrName, attrValue);
+            }
+
+            // Serialize back to string
+            const serializer = new XMLSerializer();
+            return serializer.serializeToString(mermaidSvgEl);
+        }
+
+        // CSS editor input handler
+        cssEditor.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                applyCustomCSS();
+            }, 500);
+        });
+
+        // SVG editor input handler
+        svgEditor.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(renderDiagram, 500);
+        });
+
+        // Config editor input handler
+        configEditor.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(renderDiagram, 500);
+        });
+
+        // Resizer functionality
+        let isResizing = false;
+
+        resizer.addEventListener('mousedown', function(e) {
+            isResizing = true;
+            resizer.classList.add('resizing');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!isResizing) return;
+
+            const containerRect = container.getBoundingClientRect();
+            const newWidth = e.clientX - containerRect.left;
+            const containerWidth = containerRect.width;
+            const percentage = (newWidth / containerWidth) * 100;
+
+            // Limit between 20% and 80%
+            if (percentage >= 20 && percentage <= 80) {
+                editorPanel.style.flex = `0 0 ${percentage}%`;
+            }
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (isResizing) {
+                isResizing = false;
+                resizer.classList.remove('resizing');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+        });
+
+        // Insets task bar rects horizontally by gantt.taskPadding pixels on each side.
+        // Mermaid positions bars from exact date coordinates so adjacent tasks always
+        // touch; this is the only way to add a visual gap between them.
+        function applyTaskPadding(svgString) {
+            let padding = 0;
+            try {
+                const config = JSON.parse(configEditor.value);
+                padding = config?.gantt?.taskPadding || 0;
+            } catch (e) { /* invalid JSON — skip */ }
+            if (!padding) return svgString;
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgString, 'image/svg+xml');
+
+            doc.querySelectorAll('rect.task').forEach(rect => {
+                const x = parseFloat(rect.getAttribute('x') || '0');
+                const w = parseFloat(rect.getAttribute('width') || '0');
+                if (w > padding * 2) {
+                    rect.setAttribute('x', x + padding);
+                    rect.setAttribute('width', w - padding * 2);
+                }
+            });
+
+            return new XMLSerializer().serializeToString(doc.documentElement);
+        }
+
+        // Post-processes SVG text elements: splits on literal \n into <tspan> lines.
+        // Mermaid Gantt syntax uses one line per entry so actual newlines break parsing;
+        // write e.g. "Deploy servers\nWith rollback  :a1, ..." to get two-line labels.
+        function applyLineBreaks(svgString) {
+            const BREAK = '\\n';
+            if (!svgString.includes(BREAK)) return svgString;
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgString, 'image/svg+xml');
+            const LINE_HEIGHT = 16;
+
+            doc.querySelectorAll('text').forEach(textEl => {
+                const fullText = textEl.textContent;
+                if (!fullText.includes(BREAK)) return;
+
+                const parts = fullText.split(BREAK);
+
+                // Prefer x from first tspan child, then from the <text> itself
+                const firstTspan = textEl.querySelector('tspan');
+                const x = (firstTspan && firstTspan.getAttribute('x'))
+                         || textEl.getAttribute('x') || '0';
+
+                // Shift baseline up so multi-line text stays vertically centred
+                const currentY = parseFloat(textEl.getAttribute('y') || '0');
+                textEl.setAttribute('y', currentY - ((parts.length - 1) * LINE_HEIGHT) / 2);
+
+                // Remove textLength — it was computed for the original single-line text
+                textEl.removeAttribute('textLength');
+
+                while (textEl.firstChild) textEl.removeChild(textEl.firstChild);
+
+                parts.forEach((part, i) => {
+                    const tspan = doc.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                    tspan.setAttribute('x', x);
+                    if (i > 0) tspan.setAttribute('dy', String(LINE_HEIGHT));
+                    tspan.textContent = part.trim();
+                    textEl.appendChild(tspan);
+                });
+            });
+
+            return new XMLSerializer().serializeToString(doc.documentElement);
+        }
+
+        // Function to render the diagram
+        async function renderDiagram() {
+            const code = editor.value.trim();
+
+            if (!code) {
+                preview.innerHTML = '<div class="placeholder">Preview will appear here...</div>';
+                return;
+            }
+
+            try {
+                // Apply Mermaid configuration first
+                applyMermaidConfig();
+
+                // Check if the input contains a complete SVG with content (not just empty tags)
+                // Match SVG that has actual content between tags
+                const svgMatch = code.match(/<svg[^>]*>[\s\S]+<\/svg>/i);
+
+                if (svgMatch && svgMatch[0].length > 100) {
+                    // Found complete SVG with substantial content
+                    preview.innerHTML = '<div id="diagram"></div>';
+
+                    // Apply SVG override if present
+                    const finalSvg = applySVGOverride(svgMatch[0]);
+                    document.getElementById('diagram').innerHTML = finalSvg;
+
+                    // Apply custom CSS
+                    applyCustomCSS();
+
+                    // Initialize pan and zoom
+                    initPanZoom();
+                } else {
+                    // Treat as Mermaid code
+                    preview.innerHTML = '<div id="diagram"></div>';
+
+                    // Render as Mermaid diagram
+                    const { svg } = await mermaid.render('diagram-svg', code);
+
+                    // Apply line breaks (\n in task/section names → SVG tspan elements)
+                    const svgWithBreaks = applyLineBreaks(svg);
+
+                    // Inset task bars horizontally (gantt.taskPadding in config)
+                    const svgWithPadding = applyTaskPadding(svgWithBreaks);
+
+                    // Apply SVG override if present
+                    const finalSvg = applySVGOverride(svgWithPadding);
+                    document.getElementById('diagram').innerHTML = finalSvg;
+
+                    // Apply custom CSS
+                    applyCustomCSS();
+
+                    // Initialize pan and zoom after rendering
+                    initPanZoom();
+                }
+            } catch (error) {
+                preview.innerHTML = `<div class="error">Error rendering diagram:\n\n${error.message}</div>`;
+            }
+        }
+
+        // Pan and zoom functionality
+        let isPanning = false;
+        let startX, startY;
+        let translateX = 0, translateY = 0;
+        let scale = 1;
+
+        function initPanZoom() {
+            const diagram = document.getElementById('diagram');
+            const svg = diagram.querySelector('svg');
+            if (!svg) return;
+
+            // Reset transform
+            translateX = 0;
+            translateY = 0;
+            scale = 1;
+            updateTransform();
+
+            // Mouse wheel for zoom
+            preview.addEventListener('wheel', handleWheel, { passive: false });
+            
+            // Mouse drag for pan
+            preview.addEventListener('mousedown', handleMouseDown);
+            preview.addEventListener('mousemove', handleMouseMove);
+            preview.addEventListener('mouseup', handleMouseUp);
+            preview.addEventListener('mouseleave', handleMouseUp);
+        }
+
+        function handleWheel(e) {
+            e.preventDefault();
+            
+            const diagram = document.getElementById('diagram');
+            const svg = diagram?.querySelector('svg');
+            if (!svg) return;
+
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            const newScale = scale * delta;
+            
+            // Limit zoom range
+            if (newScale < 0.1 || newScale > 5) return;
+            
+            // Get mouse position relative to preview
+            const rect = preview.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Adjust translation to zoom towards mouse position
+            translateX = mouseX - (mouseX - translateX) * delta;
+            translateY = mouseY - (mouseY - translateY) * delta;
+            
+            scale = newScale;
+            updateTransform();
+        }
+
+        function handleMouseDown(e) {
+            if (e.button !== 0) return; // Only left mouse button
+            
+            const diagram = document.getElementById('diagram');
+            if (!diagram) return;
+            
+            isPanning = true;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+            preview.style.cursor = 'grabbing';
+        }
+
+        function handleMouseMove(e) {
+            if (!isPanning) return;
+            
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            updateTransform();
+        }
+
+        function handleMouseUp() {
+            isPanning = false;
+            preview.style.cursor = 'default';
+        }
+
+        function updateTransform() {
+            const diagram = document.getElementById('diagram');
+            const svg = diagram?.querySelector('svg');
+            if (!svg) return;
+            
+            svg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+            svg.style.transformOrigin = '0 0';
+            svg.style.transition = isPanning ? 'none' : 'transform 0.1s ease-out';
+        }
+
+        // Debounced input handler for real-time updates
+        editor.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(renderDiagram, 500);
+        });
+
+        // Copy SVG source to clipboard
+        function copySVGSource() {
+            const svg = document.querySelector('#diagram svg');
+            if (!svg) {
+                alert('No diagram to copy');
+                return;
+            }
+            
+            const svgData = new XMLSerializer().serializeToString(svg);
+            navigator.clipboard.writeText(svgData).then(() => {
+                alert('SVG source copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy SVG source');
+            });
+        }
+
+        // Save all settings to a text file
+        function saveAllSettings() {
+            try {
+                const settings = {
+                    mermaidCode: editor.value,
+                    mermaidConfig: configEditor.value,
+                    svgOverride: svgEditor.value,
+                    customCSS: cssEditor.value
+                };
+
+                const content = `=== MERMAID CODE ===
+${settings.mermaidCode}
+
+=== MERMAID CONFIG ===
+${settings.mermaidConfig}
+
+=== SVG OVERRIDE ===
+${settings.svgOverride}
+
+=== CUSTOM CSS ===
+${settings.customCSS}`;
+
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const titleMatch = editor.value.match(/^\s*title\s+(.+)$/m);
+                const filename = titleMatch
+                    ? titleMatch[1].trim().replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-')
+                    : 'mermaid-diagram-settings';
+                a.download = filename + '.txt';
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Save error:', error);
+                alert('Failed to save: ' + error.message);
+            }
+        }
+
+        // Load all settings from a text file
+        function loadAllSettings() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt';
+            
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const content = event.target.result;
+                    
+                    // Parse the content
+                    const sections = {
+                        mermaidCode: /=== MERMAID CODE ===\n([\s\S]*?)\n\n=== MERMAID CONFIG ===/,
+                        mermaidConfig: /=== MERMAID CONFIG ===\n([\s\S]*?)\n\n=== SVG OVERRIDE ===/,
+                        svgOverride: /=== SVG OVERRIDE ===\n([\s\S]*?)\n\n=== CUSTOM CSS ===/,
+                        customCSS: /=== CUSTOM CSS ===\n([\s\S]*?)$/
+                    };
+
+                    const mermaidMatch = content.match(sections.mermaidCode);
+                    if (mermaidMatch) editor.value = mermaidMatch[1];
+
+                    const configMatch = content.match(sections.mermaidConfig);
+                    if (configMatch) configEditor.value = configMatch[1];
+
+                    const svgMatch = content.match(sections.svgOverride);
+                    if (svgMatch) svgEditor.value = svgMatch[1];
+
+                    const cssMatch = content.match(sections.customCSS);
+                    if (cssMatch) cssEditor.value = cssMatch[1];
+
+                    // Re-render with loaded settings
+                    renderDiagram();
+                };
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        }
+
+        // Download SVG
+        function downloadSVG() {
+            const svg = document.querySelector('#diagram svg');
+            if (!svg) {
+                alert('No diagram to download');
+                return;
+            }
+            
+            try {
+                const svgClone = svg.cloneNode(true);
+                const svgData = new XMLSerializer().serializeToString(svgClone);
+                const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'diagram.svg';
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('Failed to download SVG: ' + error.message);
+            }
+        }
+
+        // Download PNG
+        function downloadPNG() {
+            const svg = document.querySelector('#diagram svg');
+            if (!svg) {
+                alert('No diagram to download');
+                return;
+            }
+
+            try {
+                const rect = svg.getBoundingClientRect();
+                const svgClone = svg.cloneNode(true);
+                
+                const viewBox = svg.getAttribute('viewBox');
+                let width, height;
+                
+                if (viewBox) {
+                    const parts = viewBox.split(/\s+/);
+                    width = parseFloat(parts[2]);
+                    height = parseFloat(parts[3]);
+                } else {
+                    width = rect.width || 1000;
+                    height = rect.height || 800;
+                }
+                
+                svgClone.setAttribute('width', width);
+                svgClone.setAttribute('height', height);
+                
+                const svgData = new XMLSerializer().serializeToString(svgClone);
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+
+                img.onload = function() {
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    canvas.toBlob(blob => {
+                        if (!blob) {
+                            alert('Failed to generate PNG');
+                            return;
+                        }
+                        
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'diagram.png';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    }, 'image/png');
+                };
+
+                img.onerror = function(error) {
+                    console.error('Error loading image:', error);
+                    alert('Failed to generate PNG. Try downloading as SVG instead.');
+                };
+
+                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+                img.src = url;
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('Failed to download PNG: ' + error.message);
+            }
+        }
+
+        // Clear editor
+        function clearEditor() {
+            if (confirm('Are you sure you want to clear the editor?')) {
+                editor.value = '';
+                renderDiagram();
+            }
+        }
+
+        // Reset zoom and pan
+        function resetZoom() {
+            translateX = 0;
+            translateY = 0;
+            scale = 1;
+            updateTransform();
+        }
+
+        // Initial render
+        renderDiagram();
+
+        // Handle tab key in textarea
+        editor.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 4;
+            }
+        });
+    </script>
+</body>
+</html>
