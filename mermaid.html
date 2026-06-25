@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -703,6 +702,91 @@
         }
 
         // Function to render the diagram
+        // Extracts percentage values embedded as numeric modifiers in Mermaid task lines.
+        // Syntax: "Task name  :done, 75, id, date, dur" — the number is stripped before
+        // Mermaid sees the code (it would treat it as an unknown id and error), and the
+        // id→percentage mapping is returned for post-render label injection.
+        function extractPercentages(mermaidCode) {
+            const percentMap = {};
+            // All modifiers that appear before the task id (including Ceta's own 'vert')
+            const STATUS_KEYWORDS = new Set(['done', 'active', 'crit', 'milestone', 'vert']);
+
+            const processed = mermaidCode.split('\n').map(line => {
+                // Skip directives, section lines, comments, and lines without a colon
+                if (!line.includes(':') || /^\s*%%|^\s*section\s|^\s*%%\{/.test(line)) return line;
+
+                const colonIdx = line.indexOf(':');
+                const descPart = line.slice(0, colonIdx);
+                const afterColon = line.slice(colonIdx + 1);
+
+                const fields = afterColon.split(',').map(f => f.trim());
+                let pctFound = null;
+                let pctIndex = -1;
+                let taskId = null;
+
+                // Scan only the leading modifier fields (before the task id).
+                // Once we hit the task id, everything after is dates/durations — stop scanning.
+                for (let i = 0; i < fields.length; i++) {
+                    const field = fields[i];
+                    if (STATUS_KEYWORDS.has(field)) continue;
+
+                    // Bare integer 0–100 before the task id → percentage
+                    if (pctFound === null && /^\d{1,3}$/.test(field)) {
+                        const n = parseInt(field, 10);
+                        if (n >= 0 && n <= 100) { pctFound = n; pctIndex = i; continue; }
+                    }
+
+                    // First letter-starting identifier that isn't a keyword → task id; stop here
+                    if (/^[a-zA-Z]\w*$/.test(field)) { taskId = field; break; }
+
+                    // Anything else before the id (unusual) — stop scanning for percentage
+                    break;
+                }
+
+                if (pctFound !== null && taskId !== null) {
+                    percentMap[taskId] = pctFound;
+                    const kept = fields.filter((_, i) => i !== pctIndex);
+                    return `${descPart}:${kept.join(', ')}`;
+                }
+                return line;
+            }).join('\n');
+
+            return { processed, percentMap };
+        }
+
+        // Injects percentage <text> labels to the right of each task bar whose id
+        // appears in percentMap. Runs against the live DOM after innerHTML is set.
+        function injectPercentageLabels(percentMap) {
+            if (!Object.keys(percentMap).length) return;
+            const svg = document.querySelector('#diagram svg');
+            if (!svg) return;
+
+            // Clear any labels from a previous render
+            svg.querySelectorAll('.pct-label').forEach(el => el.remove());
+
+            Object.entries(percentMap).forEach(([id, pct]) => {
+                // Mermaid generates element ids like "diagram-svg-<taskId>"
+                const rect = svg.querySelector(`[id$="-${id}"] rect.task, rect[id$="-${id}"]`);
+                // Fall back to any rect whose closest ancestor id ends with the task id
+                const taskEl = rect || svg.querySelector(`[id$="-${id}"]`)?.querySelector('rect.task');
+                if (!taskEl) return;
+
+                const rx = parseFloat(taskEl.getAttribute('x')) + parseFloat(taskEl.getAttribute('width')) + 8;
+                const ry = parseFloat(taskEl.getAttribute('y')) + parseFloat(taskEl.getAttribute('height')) / 2;
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', rx);
+                text.setAttribute('y', ry);
+                text.setAttribute('dominant-baseline', 'central');
+                text.setAttribute('class', 'pct-label');
+                text.setAttribute('font-size', '12');
+                text.setAttribute('fill', '#555');
+                text.setAttribute('stroke', 'none');
+                text.textContent = `${pct}%`;
+                svg.appendChild(text);
+            });
+        }
+
         async function renderDiagram() {
             const code = editor.value.trim();
 
@@ -736,8 +820,12 @@
                     // Treat as Mermaid code
                     preview.innerHTML = '<div id="diagram"></div>';
 
+                    // Extract inline percentage values (e.g. ":done, 75, id, ...") and
+                    // strip them from the code before Mermaid sees it
+                    const { processed: codeForMermaid, percentMap } = extractPercentages(code);
+
                     // Render as Mermaid diagram
-                    const { svg } = await mermaid.render('diagram-svg', code);
+                    const { svg } = await mermaid.render('diagram-svg', codeForMermaid);
 
                     // Apply line breaks (\n in task/section names → SVG tspan elements)
                     const svgWithBreaks = applyLineBreaks(svg);
@@ -748,6 +836,9 @@
                     // Apply SVG override if present
                     const finalSvg = applySVGOverride(svgWithPadding);
                     document.getElementById('diagram').innerHTML = finalSvg;
+
+                    // Inject percentage labels to the right of task bars
+                    injectPercentageLabels(percentMap);
 
                     // Apply custom CSS
                     applyCustomCSS();
@@ -1083,4 +1174,3 @@ ${settings.customCSS}`;
     </script>
 </body>
 </html>
-
