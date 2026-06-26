@@ -31,3 +31,9 @@ Run the appropriate build command from inside the `electron/` directory:
 | Linux | `npm run build-linux` | `dist/CETA Diagram Editor.AppImage` |
 
 Distribute the output file to end users — they do not need Node.js installed to run it.
+
+## Licences
+
+[Mermaid.js](https://mermaid.js.org/) © Knut Sveidqvist and contributors — [MIT License](https://github.com/mermaid-js/mermaid/blob/develop/LICENSE)
+
+[Electron](https://www.electronjs.org/) © OpenJS Foundation — [MIT License](https://github.com/electron/electron/blob/main/LICENSE)
